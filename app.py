@@ -1,4 +1,6 @@
 import os
+import hashlib
+
 from flask import (Flask, request,
                   send_from_directory, render_template, redirect)
 
@@ -16,6 +18,8 @@ db.init_app(app)
 db.create_all()
 
 
+SECRET_KEY = '9e3d5c3bea7d493a84ded2788075350a'
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -23,10 +27,11 @@ def index():
 @app.route('/login', methods=['POST'])
 def login():
     username = request.form.get('username')
-    password = request.form.get('password')
+    password = request.form.get('password') # qwerty
+    hashed_password = hashlib.sha512(password.encode() + SECRET_KEY.encode()).hexdigest()
     user = db.session.query(User).filter(User.username == username).first()
 
-    if user is not None and user.password == password:
+    if user is not None and user.password == hashed_password:
         return redirect('/admin')
     return 'Bad login', 400
 
@@ -37,7 +42,9 @@ def register():
         username = request.form.get('username')
         password = request.form.get('password')
 
-        user = User(username=username, password=password)
+        hashed_password = hashlib.sha512(password.encode() + SECRET_KEY.encode()).hexdigest()
+
+        user = User(username=username, password=hashed_password)
         db.session.add(user)
         db.session.commit()
         print(user)
@@ -45,6 +52,10 @@ def register():
     elif request.method == 'GET':
         return render_template('/register/index.html')
 
+@app.route('/users')
+def users_list():
+    users = User.query.all()
+    return render_template('users.html', users=users)
 
 @app.route('/admin')
 def admin():
