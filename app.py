@@ -2,7 +2,8 @@ import os
 import hashlib
 
 from flask import (Flask, request,
-                  send_from_directory, render_template, redirect)
+                  send_from_directory, render_template,
+                  redirect, make_response, session)
 
 from models import db, User
 from datetime import datetime
@@ -32,7 +33,10 @@ def login():
     user = db.session.query(User).filter(User.username == username).first()
 
     if user is not None and user.password == hashed_password:
-        return redirect('/admin')
+
+        response = make_response(redirect('/admin'))
+        response.set_cookie('is_admin', '1')
+        return response
     return 'Bad login', 400
 
 
@@ -59,7 +63,11 @@ def users_list():
 
 @app.route('/admin')
 def admin():
-    return render_template('admin/index.html')
+    is_admin = bool(request.cookies.get('is_admin'))
+    if is_admin:
+        return render_template('admin/index.html')
+    else:
+        return 'You are not admin', 401
 
 @app.route('/static/<path:path>')
 def serve_static(path):
