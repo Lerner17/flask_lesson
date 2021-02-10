@@ -2,8 +2,8 @@ import os
 from flask import (Flask, request,
                   send_from_directory, render_template, redirect)
 
-from models import db
-
+from models import db, User
+from datetime import datetime
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -24,9 +24,26 @@ def index():
 def login():
     username = request.form.get('username')
     password = request.form.get('password')
-    print(username, password)
+    user = db.session.query(User).filter(User.username == username).first()
 
-    return redirect('/admin')
+    if user is not None and user.password == password:
+        return redirect('/admin')
+    return 'Bad login', 400
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        user = User(username=username, password=password)
+        db.session.add(user)
+        db.session.commit()
+        print(user)
+        return redirect('/')
+    elif request.method == 'GET':
+        return render_template('/register/index.html')
 
 
 @app.route('/admin')
